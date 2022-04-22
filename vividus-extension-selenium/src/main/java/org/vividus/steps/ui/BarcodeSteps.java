@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 the original author or authors.
+ * Copyright 2019-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,8 @@ import org.jbehave.core.annotations.When;
 import org.vividus.context.VariableContext;
 import org.vividus.reporter.event.AttachmentPublishEvent;
 import org.vividus.reporter.model.Attachment;
-import org.vividus.selenium.screenshot.ScreenshotTaker;
+import org.vividus.selenium.IWebDriverProvider;
+import org.vividus.selenium.screenshot.ScreenshotUtils;
 import org.vividus.softassert.ISoftAssert;
 import org.vividus.ui.action.BarcodeActions;
 import org.vividus.variable.VariableScope;
@@ -36,16 +37,16 @@ import ru.yandex.qatools.ashot.util.ImageTool;
 
 public class BarcodeSteps
 {
-    private final ScreenshotTaker screenshotTaker;
+    private final IWebDriverProvider webDriverProvider;
     private final BarcodeActions barcodeActions;
     private final VariableContext variableContext;
     private final ISoftAssert softAssert;
     private final EventBus eventBus;
 
-    public BarcodeSteps(ScreenshotTaker screenshotTaker, BarcodeActions barcodeActions,
+    public BarcodeSteps(IWebDriverProvider webDriverProvider, BarcodeActions barcodeActions,
             VariableContext variableContext, ISoftAssert softAssert, EventBus eventBus)
     {
-        this.screenshotTaker = screenshotTaker;
+        this.webDriverProvider = webDriverProvider;
         this.barcodeActions = barcodeActions;
         this.variableContext = variableContext;
         this.softAssert = softAssert;
@@ -74,7 +75,7 @@ public class BarcodeSteps
     @When("I scan barcode from screen and save result to $scopes variable `$variableName`")
     public void scanBarcode(Set<VariableScope> scopes, String variableName) throws IOException
     {
-        BufferedImage viewportScreenshot = screenshotTaker.takeViewportScreenshot();
+        BufferedImage viewportScreenshot = ScreenshotUtils.takeViewportScreenshot(webDriverProvider.get());
         try
         {
             String result = barcodeActions.scanBarcode(viewportScreenshot);

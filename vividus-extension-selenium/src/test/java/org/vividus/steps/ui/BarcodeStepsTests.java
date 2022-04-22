@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 the original author or authors.
+ * Copyright 2019-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -32,16 +33,21 @@ import java.util.Set;
 import com.google.common.eventbus.EventBus;
 import com.google.zxing.NotFoundException;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openqa.selenium.WebDriver;
 import org.vividus.context.VariableContext;
 import org.vividus.reporter.event.AttachmentPublishEvent;
 import org.vividus.reporter.model.Attachment;
+import org.vividus.selenium.IWebDriverProvider;
 import org.vividus.selenium.screenshot.ScreenshotTaker;
+import org.vividus.selenium.screenshot.ScreenshotUtils;
 import org.vividus.softassert.ISoftAssert;
 import org.vividus.ui.action.BarcodeActions;
 import org.vividus.variable.VariableScope;
@@ -61,37 +67,51 @@ class BarcodeStepsTests
     @Mock private VariableContext variableContext;
     @Mock private ISoftAssert softAssert;
     @Mock private EventBus eventBus;
+    @Mock private IWebDriverProvider webDriverProvider;
+    @Mock private WebDriver webDriver;
     @InjectMocks private BarcodeSteps barCodeSteps;
+
+    @BeforeEach
+    void init()
+    {
+        when(webDriverProvider.get()).thenReturn(webDriver);
+    }
 
     @Test
     void shouldScanBarcodeSuccessfully() throws IOException, NotFoundException
     {
-        when(screenshotTaker.takeViewportScreenshot()).thenReturn(QR_CODE_IMAGE);
-        when(barcodeActions.scanBarcode(QR_CODE_IMAGE)).thenReturn(QR_CODE_VALUE);
+        try (MockedStatic<ScreenshotUtils> utils = mockStatic(ScreenshotUtils.class))
+        {
+            utils.when(() -> ScreenshotUtils.takeViewportScreenshot(webDriver)).thenReturn(QR_CODE_IMAGE);
+            when(barcodeActions.scanBarcode(QR_CODE_IMAGE)).thenReturn(QR_CODE_VALUE);
 
-        barCodeSteps.scanBarcode(VARIABLE_SCOPE, VARIABLE_NAME);
+            barCodeSteps.scanBarcode(VARIABLE_SCOPE, VARIABLE_NAME);
 
-        verify(variableContext).putVariable(VARIABLE_SCOPE, VARIABLE_NAME, QR_CODE_VALUE);
+            verify(variableContext).putVariable(VARIABLE_SCOPE, VARIABLE_NAME, QR_CODE_VALUE);
+        }
     }
 
     @Test
     void whenIScanBarcodeAndBarcodeIsAbsent() throws IOException, NotFoundException
     {
-        when(screenshotTaker.takeViewportScreenshot()).thenReturn(QR_CODE_IMAGE);
-        var exception = NotFoundException.getNotFoundInstance();
-        when(barcodeActions.scanBarcode(QR_CODE_IMAGE)).thenThrow(exception);
+        try (MockedStatic<ScreenshotUtils> utils = mockStatic(ScreenshotUtils.class))
+        {
+            utils.when(() -> ScreenshotUtils.takeViewportScreenshot(webDriver)).thenReturn(QR_CODE_IMAGE);
+            var exception = NotFoundException.getNotFoundInstance();
+            when(barcodeActions.scanBarcode(QR_CODE_IMAGE)).thenThrow(exception);
 
-        barCodeSteps.scanBarcode(VARIABLE_SCOPE, VARIABLE_NAME);
+            barCodeSteps.scanBarcode(VARIABLE_SCOPE, VARIABLE_NAME);
 
-        verify(softAssert).recordFailedAssertion("There is no barcode on the screen", exception);
-        var eventCaptor = ArgumentCaptor.forClass(Object.class);
-        verify(eventBus).post(eventCaptor.capture());
-        Object event = eventCaptor.getValue();
-        assertThat(event, instanceOf(AttachmentPublishEvent.class));
-        Attachment attachment = ((AttachmentPublishEvent) event).getAttachment();
-        assertEquals("Viewport Screenshot", attachment.getTitle());
-        assertEquals("image/png", attachment.getContentType());
-        assertArrayEquals(ImageTool.toByteArray(QR_CODE_IMAGE), attachment.getContent());
-        verifyNoInteractions(variableContext);
+            verify(softAssert).recordFailedAssertion("There is no barcode on the screen", exception);
+            var eventCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(eventBus).post(eventCaptor.capture());
+            Object event = eventCaptor.getValue();
+            assertThat(event, instanceOf(AttachmentPublishEvent.class));
+            Attachment attachment = ((AttachmentPublishEvent) event).getAttachment();
+            assertEquals("Viewport Screenshot", attachment.getTitle());
+            assertEquals("image/png", attachment.getContentType());
+            assertArrayEquals(ImageTool.toByteArray(QR_CODE_IMAGE), attachment.getContent());
+            verifyNoInteractions(variableContext);
+        }
     }
 }

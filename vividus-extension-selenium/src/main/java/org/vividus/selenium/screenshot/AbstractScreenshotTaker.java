@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 the original author or authors.
+ * Copyright 2019-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,13 @@
 
 package org.vividus.selenium.screenshot;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
-import javax.imageio.ImageIO;
-
 import org.apache.commons.io.FileUtils;
-import org.openqa.selenium.OutputType;
 import org.openqa.selenium.SearchContext;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
@@ -56,15 +49,6 @@ public abstract class AbstractScreenshotTaker<T extends ScreenshotConfiguration>
         this.screenshotFileNameGenerator = screenshotFileNameGenerator;
         this.ashotFactory = ashotFactory;
         this.screenshotDebugger = screenshotDebugger;
-    }
-
-    @Override
-    public BufferedImage takeViewportScreenshot() throws IOException
-    {
-        try (InputStream inputStream = new ByteArrayInputStream(takeScreenshotAsByteArray()))
-        {
-            return ImageIO.read(inputStream);
-        }
     }
 
     @Override
@@ -116,7 +100,7 @@ public abstract class AbstractScreenshotTaker<T extends ScreenshotConfiguration>
 
     protected byte[] takeScreenshotAsByteArray()
     {
-        return webDriverProvider.getUnwrapped(TakesScreenshot.class).getScreenshotAs(OutputType.BYTES);
+        return ScreenshotUtils.takeViewportScreenshotAsByteArray(getWebDriverProvider().get());
     }
 
     protected IWebDriverProvider getWebDriverProvider()

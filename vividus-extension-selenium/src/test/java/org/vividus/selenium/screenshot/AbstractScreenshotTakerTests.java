@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 the original author or authors.
+ * Copyright 2019-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,17 +21,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,14 +47,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openqa.selenium.OutputType;
 import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.vividus.selenium.IWebDriverProvider;
-import org.vividus.util.ResourceUtils;
 
 import ru.yandex.qatools.ashot.AShot;
 
@@ -81,25 +79,6 @@ class AbstractScreenshotTakerTests
         verifyNoMoreInteractions(webDriverProvider, takesScreenshot);
     }
 
-    private void mockScreenshotTaking()
-    {
-        byte[] bytes = ResourceUtils.loadResourceAsByteArray(getClass(), IMAGE_PNG);
-
-        when(webDriverProvider.getUnwrapped(TakesScreenshot.class)).thenReturn(takesScreenshot);
-        when(takesScreenshot.getScreenshotAs(OutputType.BYTES)).thenReturn(bytes);
-    }
-
-    @Test
-    void shouldTakeViewportScreenshot() throws IOException
-    {
-        mockScreenshotTaking();
-
-        BufferedImage image = testScreenshotTaker.takeViewportScreenshot();
-
-        assertEquals(400, image.getWidth());
-        assertEquals(600, image.getHeight());
-    }
-
     @Test
     void shouldGenerateScreenshotFileName()
     {
@@ -111,20 +90,38 @@ class AbstractScreenshotTakerTests
     @Test
     void shouldNotPublishEmptyScreenshotData(@TempDir Path path) throws IOException
     {
-        testScreenshotTaker.screenshot = new byte[0];
-        assertNull(testScreenshotTaker.takeScreenshot(path.resolve(IMAGE_PNG)));
-        assertThat(testLogger.getLoggingEvents(), empty());
+        try (MockedStatic<ScreenshotUtils> utils = mockStatic(ScreenshotUtils.class))
+        {
+            testScreenshotTaker.screenshot = new byte[0];
+
+            WebDriver webDriver = mock(WebDriver.class);
+            when(webDriverProvider.get()).thenReturn(webDriver);
+            utils.when(() -> ScreenshotUtils.takeViewportScreenshotAsByteArray(webDriver))
+                    .thenReturn(testScreenshotTaker.screenshot);
+
+            assertNull(testScreenshotTaker.takeScreenshot(path.resolve(IMAGE_PNG)));
+            assertThat(testLogger.getLoggingEvents(), empty());
+        }
     }
 
     @Test
     void shouldPublishScreenshot(@TempDir Path path) throws IOException
     {
-        testScreenshotTaker.screenshot = new byte[1];
-        Path screenshotPath = testScreenshotTaker.takeScreenshot(path.resolve(IMAGE_PNG));
-        assertTrue(Files.exists(screenshotPath));
-        assertArrayEquals(testScreenshotTaker.screenshot, Files.readAllBytes(screenshotPath));
-        assertThat(testLogger.getLoggingEvents(), equalTo(List.of(
-                info("Screenshot was taken: {}", screenshotPath.toAbsolutePath()))));
+        try (MockedStatic<ScreenshotUtils> utils = mockStatic(ScreenshotUtils.class))
+        {
+            testScreenshotTaker.screenshot = new byte[1];
+
+            WebDriver webDriver = mock(WebDriver.class);
+            when(webDriverProvider.get()).thenReturn(webDriver);
+            utils.when(() -> ScreenshotUtils.takeViewportScreenshotAsByteArray(webDriver))
+                    .thenReturn(testScreenshotTaker.screenshot);
+
+            Path screenshotPath = testScreenshotTaker.takeScreenshot(path.resolve(IMAGE_PNG));
+            assertTrue(Files.exists(screenshotPath));
+            assertArrayEquals(testScreenshotTaker.screenshot, Files.readAllBytes(screenshotPath));
+            assertThat(testLogger.getLoggingEvents(), equalTo(List.of(
+                    info("Screenshot was taken: {}", screenshotPath.toAbsolutePath()))));
+        }
     }
 
     @Test
@@ -176,12 +173,6 @@ class AbstractScreenshotTakerTests
         public Optional<Screenshot> takeScreenshot(String screenshotName)
         {
             throw new UnsupportedOperationException();
-        }
-
-        @Override
-        protected byte[] takeScreenshotAsByteArray()
-        {
-            return screenshot == null ? super.takeScreenshotAsByteArray() : screenshot;
         }
     }
 }
