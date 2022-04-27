@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.awt.image.BufferedImage;
@@ -48,7 +47,6 @@ import org.vividus.mobileapp.action.TouchActions;
 import org.vividus.mobileapp.configuration.MobileApplicationConfiguration;
 import org.vividus.reporter.event.AttachmentPublisher;
 import org.vividus.selenium.mobileapp.MobileAppWebDriverManager;
-import org.vividus.selenium.mobileapp.screenshot.strategies.MobileAppFullShootingStrategy.TemplateMissmatchException;
 import org.vividus.selenium.screenshot.ScreenshotUtils;
 import org.vividus.util.ResourceUtils;
 
@@ -57,7 +55,7 @@ import ru.yandex.qatools.ashot.shooting.ShootingStrategy;
 import ru.yandex.qatools.ashot.util.ImageTool;
 
 @ExtendWith(MockitoExtension.class)
-class MobileAppFullShootingStrategyTests
+class MobileAppFullShootingStrategyFactoryTests
 {
     private static final String UNSUPPORTED_MESSAGE = "Element screenshot is not supported";
     private static final String TOP_IMAGE = "top-image.png";
@@ -69,7 +67,7 @@ class MobileAppFullShootingStrategyTests
     @Mock private AttachmentPublisher attachmentPublisher;
     @Mock private WebDriver webDriver;
 
-    private MobileAppFullShootingStrategy strategy;
+    private MobileAppFullShootingStrategyFactory factory;
 
     @Test
     void shouldReturnFullScreenshot()
@@ -88,7 +86,7 @@ class MobileAppFullShootingStrategyTests
                  .thenReturn(getImage(SECOND_IMAGE))
                  .thenReturn(getImage("3rd-scroll-image.png"));
 
-            BufferedImage fullImage = strategy.getScreenshot(webDriver);
+            BufferedImage fullImage = factory.getDecoratedShootingStrategy(null).getScreenshot(webDriver);
 
             assertThat(getImage("full-image.png"), ImageTool.equalImage(fullImage));
         }
@@ -110,7 +108,7 @@ class MobileAppFullShootingStrategyTests
                  .thenReturn(getImage(FIRST_IMAGE))
                  .thenReturn(getImage(SECOND_IMAGE));
 
-            BufferedImage fullImage = strategy.getScreenshot(webDriver);
+            BufferedImage fullImage = factory.getDecoratedShootingStrategy(null).getScreenshot(webDriver);
 
             assertThat(getImage("swipe-limit-image.png"), ImageTool.equalImage(fullImage));
         }
@@ -133,23 +131,13 @@ class MobileAppFullShootingStrategyTests
                  .thenReturn(getImage(FIRST_IMAGE))
                  .thenReturn(getImage(image));
 
+            ShootingStrategy shootingStrategy = factory.getDecoratedShootingStrategy(null);
             IllegalStateException thrown = assertThrows(IllegalStateException.class,
-                () -> strategy.getScreenshot(webDriver));
-            assertThat(thrown.getCause(), instanceOf(TemplateMissmatchException.class));
-            TemplateMissmatchException cause = (TemplateMissmatchException) thrown.getCause();
-            assertEquals("Unable to match the template in the target image", cause.getMessage());
+                () -> shootingStrategy.getScreenshot(webDriver));
+            assertThat(thrown.getCause(),
+                    instanceOf(MobileAppFullShootingStrategyFactory.TemplateMissmatchException.class));
+            assertEquals("Unable to match the template in the target image", thrown.getCause().getMessage());
         }
-    }
-
-    @Test
-    void shouldReturnStrategy()
-    {
-        defaultInit();
-        ShootingStrategy shootingStrategy = mock(ShootingStrategy.class);
-
-        assertEquals(strategy, strategy.getDecoratedShootingStrategy(shootingStrategy));
-
-        verifyNoInteractions(shootingStrategy);
     }
 
     @Test
@@ -158,8 +146,9 @@ class MobileAppFullShootingStrategyTests
         defaultInit();
         Set<Coords> coords = Set.of();
 
+        ShootingStrategy shootingStrategy = factory.getDecoratedShootingStrategy(null);
         UnsupportedOperationException thrown = assertThrows(UnsupportedOperationException.class,
-            () -> strategy.getScreenshot(webDriver, coords));
+            () -> shootingStrategy.getScreenshot(webDriver, coords));
         assertEquals(UNSUPPORTED_MESSAGE, thrown.getMessage());
     }
 
@@ -169,8 +158,9 @@ class MobileAppFullShootingStrategyTests
         defaultInit();
         Set<Coords> coords = Set.of();
 
+        ShootingStrategy shootingStrategy = factory.getDecoratedShootingStrategy(null);
         UnsupportedOperationException thrown = assertThrows(UnsupportedOperationException.class,
-            () -> strategy.prepareCoords(coords));
+            () -> shootingStrategy.prepareCoords(coords));
         assertEquals(UNSUPPORTED_MESSAGE, thrown.getMessage());
     }
 
@@ -187,8 +177,9 @@ class MobileAppFullShootingStrategyTests
         {
             IOException thrownMock = mock(IOException.class);
             utils.when(() -> ScreenshotUtils.takeViewportScreenshot(webDriver)).thenThrow(thrownMock);
+            ShootingStrategy shootingStrategy = factory.getDecoratedShootingStrategy(null);
             UncheckedIOException thrown = assertThrows(UncheckedIOException.class,
-                () -> strategy.getScreenshot(webDriver));
+                () -> shootingStrategy.getScreenshot(webDriver));
             assertEquals(thrownMock, thrown.getCause());
         }
     }
@@ -202,7 +193,7 @@ class MobileAppFullShootingStrategyTests
     {
         MobileApplicationConfiguration mobileAppConfig = new MobileApplicationConfiguration(Duration.ZERO,
                 swipeLimit, 0, 0);
-        strategy = new MobileAppFullShootingStrategy(touchActions, genericWebDriverManager, mobileAppConfig,
+        factory = new MobileAppFullShootingStrategyFactory(touchActions, genericWebDriverManager, mobileAppConfig,
                 attachmentPublisher);
     }
 
