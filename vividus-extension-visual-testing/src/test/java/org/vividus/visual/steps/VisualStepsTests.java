@@ -16,17 +16,28 @@
 
 package org.vividus.visual.steps;
 
+import static com.github.valfirst.slf4jtest.LoggingEvent.warn;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import com.github.valfirst.slf4jtest.TestLogger;
+import com.github.valfirst.slf4jtest.TestLoggerFactory;
+import com.github.valfirst.slf4jtest.TestLoggerFactoryExtension;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,21 +51,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openqa.selenium.SearchContext;
 import org.vividus.reporter.event.IAttachmentPublisher;
 import org.vividus.softassert.ISoftAssert;
+import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.context.IUiContext;
 import org.vividus.ui.screenshot.ScreenshotPrecondtionMismatchException;
 import org.vividus.visual.model.VisualActionType;
 import org.vividus.visual.model.VisualCheck;
 import org.vividus.visual.model.VisualCheckResult;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({ MockitoExtension.class, TestLoggerFactoryExtension.class })
 class VisualStepsTests
 {
     private static final String TEMPLATE = "template";
+    private static final String SOURCE_KEY = "source-key";
 
     @Mock private IUiContext uiContext;
     @Mock private IAttachmentPublisher attachmentPublisher;
     @Mock private ISoftAssert softAssert;
     @InjectMocks private TestVisualSteps visualSteps;
+
+    private final TestLogger testLogger = TestLoggerFactory.getTestLogger(AbstractVisualSteps.class);
 
     @SuppressWarnings("unchecked")
     @Test
@@ -121,6 +136,39 @@ class VisualStepsTests
 
         verify(softAssert).recordFailedAssertion(exception);
         verifyNoInteractions(attachmentPublisher, checkResultProvider);
+    }
+
+    @Test
+    void shouldFailIfBothSourcesAreNotEmpty()
+    {
+        Locator locator = mock(Locator.class);
+        Set<Locator> ignores = Set.of(locator);
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+            () -> visualSteps.getIgnoresFromOneOf(ignores, SOURCE_KEY, ignores));
+        assertEquals("The elements and areas to ignore must be passed either through screenshot configuration or "
+                + SOURCE_KEY, thrown.getMessage());
+    }
+
+    @Test
+    void shouldReturnIgnoresFromSecondSource()
+    {
+        Locator locator = mock(Locator.class);
+        Set<Locator> ignores = Set.of(locator);
+        Set<Locator> result = visualSteps.getIgnoresFromOneOf(Set.of(), SOURCE_KEY, ignores);
+        assertEquals(ignores, result);
+        assertThat(testLogger.getLoggingEvents(), equalTo(List.of(warn(
+            "The passing of elements and areas to ignore through {} is deprecated, please use screenshot configuration"
+            + " instead", SOURCE_KEY))));
+    }
+
+    @Test
+    void shouldReturnIgnoresFromFirstSource()
+    {
+        Locator locator = mock(Locator.class);
+        Set<Locator> ignores = Set.of(locator);
+        Set<Locator> result = visualSteps.getIgnoresFromOneOf(ignores, SOURCE_KEY, Set.of());
+        assertEquals(ignores, result);
+        assertThat(testLogger.getLoggingEvents(), equalTo(List.of()));
     }
 
     private static final class TestVisualSteps extends AbstractVisualSteps

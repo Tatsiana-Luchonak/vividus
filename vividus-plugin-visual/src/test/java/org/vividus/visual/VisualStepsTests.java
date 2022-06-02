@@ -55,6 +55,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openqa.selenium.SearchContext;
 import org.vividus.reporter.event.IAttachmentPublisher;
 import org.vividus.resource.ResourceLoadException;
+import org.vividus.selenium.screenshot.IgnoreStrategy;
 import org.vividus.softassert.ISoftAssert;
 import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.context.IUiContext;
@@ -65,7 +66,6 @@ import org.vividus.visual.engine.IVisualTestingEngine;
 import org.vividus.visual.model.VisualActionType;
 import org.vividus.visual.model.VisualCheck;
 import org.vividus.visual.model.VisualCheckResult;
-import org.vividus.visual.screenshot.IgnoreStrategy;
 
 @ExtendWith(MockitoExtension.class)
 class VisualStepsTests
@@ -114,7 +114,6 @@ class VisualStepsTests
         mockCheckResult();
         visualSteps.runVisualTests(action, BASELINE);
         verify(softAssert).assertTrue(VISUAL_CHECK_PASSED, false);
-        assertEquals(Map.of(), visualCheck.getElementsToIgnore());
         verifyCheckResultPublish();
     }
 
@@ -137,7 +136,6 @@ class VisualStepsTests
         mockCheckResult();
         visualSteps.runVisualTests(compareAgainst, BASELINE, screenshotConfiguration);
         verify(softAssert).assertTrue(VISUAL_CHECK_PASSED, false);
-        assertEquals(Map.of(), visualCheck.getElementsToIgnore());
         verifyCheckResultPublish();
     }
 
@@ -151,7 +149,6 @@ class VisualStepsTests
         visualSteps.runVisualTests(VisualActionType.COMPARE_AGAINST, BASELINE);
         verify(softAssert, never()).assertTrue(VISUAL_CHECK_PASSED, false);
         verify(softAssert).recordFailedAssertion("Unable to find baseline with name: baseline");
-        assertEquals(Map.of(), visualCheck.getElementsToIgnore());
         verifyCheckResultPublish();
     }
 
@@ -180,14 +177,15 @@ class VisualStepsTests
         Set<Locator> elementsToIgnore = Set.of(A_LOCATOR);
         Set<Locator> areasToIgnore = Set.of(DIV_LOCATOR);
         mockRow(row, elementsToIgnore, areasToIgnore, 50, columnName);
-        VisualCheck visualCheck = mockVisualCheckFactory(actionType);
+        VisualCheck visualCheck = factory.create(BASELINE, actionType);
+        when(visualCheckFactory.create(BASELINE, actionType,
+            Map.of(IgnoreStrategy.ELEMENT, elementsToIgnore, IgnoreStrategy.AREA, areasToIgnore)))
+                .thenReturn(visualCheck);
         when(visualTestingEngine.compareAgainst(visualCheck)).thenReturn(visualCheckResult);
         mockCheckResult();
         visualSteps.runVisualTests(actionType, BASELINE, table);
         verify(softAssert).assertTrue(VISUAL_CHECK_PASSED, false);
         assertEquals(OptionalDouble.of(50), diffValueExtractor.apply(visualCheck));
-        assertEquals(Map.of(IgnoreStrategy.ELEMENT, elementsToIgnore, IgnoreStrategy.AREA, areasToIgnore),
-                visualCheck.getElementsToIgnore());
         verifyCheckResultPublish();
     }
 
@@ -212,8 +210,6 @@ class VisualStepsTests
         visualSteps.runVisualTests(compareAgainst, BASELINE, table, screenshotConfiguration);
         verify(softAssert).assertTrue(VISUAL_CHECK_PASSED, false);
         assertEquals(OptionalDouble.empty(), visualCheck.getRequiredDiffPercentage());
-        assertEquals(Map.of(IgnoreStrategy.ELEMENT, elementsToIgnore, IgnoreStrategy.AREA, areasToIgnore),
-                visualCheck.getElementsToIgnore());
         verifyCheckResultPublish();
     }
 
@@ -274,7 +270,6 @@ class VisualStepsTests
         visualSteps.runVisualTests(VisualActionType.ESTABLISH, BASELINE);
         verifyNoMoreInteractions(softAssert);
         verifyCheckResultPublish();
-        assertEquals(Map.of(), visualCheck.getElementsToIgnore());
     }
 
     @Test

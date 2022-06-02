@@ -35,6 +35,7 @@ import org.vividus.ui.screenshot.ScreenshotParameters;
 
 import ru.yandex.qatools.ashot.AShot;
 import ru.yandex.qatools.ashot.shooting.CuttingDecorator;
+import ru.yandex.qatools.ashot.shooting.ElementCroppingDecorator;
 import ru.yandex.qatools.ashot.shooting.ShootingStrategies;
 import ru.yandex.qatools.ashot.shooting.ShootingStrategy;
 
@@ -91,6 +92,15 @@ class AbstractAshotFactoryTests
     {
         assertThat(factory.decorateWithFixedCutStrategy(ShootingStrategies.simple(), headerToCut, footerToCut),
                 instanceOf(CuttingDecorator.class));
+    }
+
+    @Test
+    void shouldDecorateWithCropping()
+    {
+        ScreenshotCropper cropper = mock(ScreenshotCropper.class);
+        factory.setScreenshotCropper(cropper);
+        assertThat(factory.decorateWithCropping(ShootingStrategies.simple(), Map.of(), 0),
+                instanceOf(ElementCroppingDecorator.class));
     }
 
     private static final class TestAshotFactory extends AbstractAshotFactory<ScreenshotParameters>

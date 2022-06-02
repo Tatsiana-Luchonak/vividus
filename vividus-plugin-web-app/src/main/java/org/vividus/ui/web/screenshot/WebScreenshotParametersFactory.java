@@ -16,10 +16,15 @@
 
 package org.vividus.ui.web.screenshot;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.BinaryOperator;
 
 import org.openqa.selenium.WebElement;
+import org.vividus.selenium.screenshot.IgnoreStrategy;
 import org.vividus.ui.action.ISearchActions;
+import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.screenshot.AbstractScreenshotParametersFactory;
 import org.vividus.ui.screenshot.ScreenshotParameters;
 import org.vividus.ui.screenshot.ScreenshotPrecondtionMismatchException;
@@ -36,29 +41,44 @@ public class WebScreenshotParametersFactory extends AbstractScreenshotParameters
     @Override
     public Optional<ScreenshotParameters> create(Optional<WebScreenshotConfiguration> screenshotConfiguration)
     {
-        return getScreenshotConfiguration(screenshotConfiguration, (c, b) -> c).map(config ->
+        return getScreenshotConfiguration(screenshotConfiguration, getConfigurationMerger()).map(
+                cfg -> configure(cfg, createWithBaseConfiguration(cfg, WebScreenshotParameters::new)));
+    }
+
+    @Override
+    public Optional<ScreenshotParameters> create(Map<IgnoreStrategy, Set<Locator>> ignores)
+    {
+        WebScreenshotConfiguration configuration = getScreenshotConfiguration(Optional.empty(),
+                getConfigurationMerger()).orElseGet(WebScreenshotConfiguration::new);
+        return Optional.of(configure(configuration,
+                createWithBaseConfiguration(configuration, ignores, WebScreenshotParameters::new)));
+    }
+
+    private ScreenshotParameters configure(WebScreenshotConfiguration config, WebScreenshotParameters parameters)
+    {
+        parameters.setNativeHeaderToCut(ensureValidCutSize(config.getNativeHeaderToCut(), "native header"));
+
+        WebCutOptions webCutOptions = new WebCutOptions(
+                ensureValidCutSize(config.getWebHeaderToCut(), "web header"),
+                ensureValidCutSize(config.getWebFooterToCut(), "web footer")
+        );
+        parameters.setWebCutOptions(webCutOptions);
+
+        config.getScrollableElement().ifPresent(locator ->
         {
-            WebScreenshotParameters parameters = createWithBaseConfiguration(config,
-                    WebScreenshotParameters::new);
-            parameters.setNativeHeaderToCut(ensureValidCutSize(config.getNativeHeaderToCut(), "native header"));
-
-            WebCutOptions webCutOptions = new WebCutOptions(
-                    ensureValidCutSize(config.getWebHeaderToCut(), "web header"),
-                    ensureValidCutSize(config.getWebFooterToCut(), "web footer")
-            );
-            parameters.setWebCutOptions(webCutOptions);
-
-            config.getScrollableElement().ifPresent(locator ->
-            {
-                WebElement scrollableElement = searchActions.findElement(locator).orElseThrow(
-                    () -> new ScreenshotPrecondtionMismatchException("Scrollable element does not exist"));
-                parameters.setScrollableElement(Optional.of(scrollableElement));
-            });
-
-            parameters.setCoordsProvider(config.getCoordsProvider());
-            parameters.setScrollTimeout(config.getScrollTimeout());
-
-            return parameters;
+            WebElement scrollableElement = searchActions.findElement(locator).orElseThrow(
+                () -> new ScreenshotPrecondtionMismatchException("Scrollable element does not exist"));
+            parameters.setScrollableElement(Optional.of(scrollableElement));
         });
+
+        parameters.setCoordsProvider(config.getCoordsProvider());
+        parameters.setScrollTimeout(config.getScrollTimeout());
+
+        return parameters;
+    }
+
+    private BinaryOperator<WebScreenshotConfiguration> getConfigurationMerger()
+    {
+        return (c, b) -> c;
     }
 }

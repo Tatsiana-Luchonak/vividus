@@ -23,10 +23,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BinaryOperator;
 
 import org.junit.jupiter.api.Test;
+import org.vividus.selenium.screenshot.IgnoreStrategy;
+import org.vividus.ui.action.search.Locator;
 import org.vividus.util.property.PropertyMappedCollection;
 
 class AbstractScreenshotParametersFactoryTests
@@ -101,6 +105,7 @@ class AbstractScreenshotParametersFactoryTests
         ScreenshotConfiguration parameters = new ScreenshotConfiguration();
         parameters.setShootingStrategy(Optional.of(DEFAULT));
         parameters.setNativeFooterToCut(1);
+        factory.setIgnoreStrategies(Map.of());
 
         ScreenshotParameters configuration = factory.createWithBaseConfiguration(parameters,
                 ScreenshotParameters::new);
@@ -121,6 +126,12 @@ class AbstractScreenshotParametersFactoryTests
     {
         @Override
         public Optional<ScreenshotParameters> create(Optional<ScreenshotConfiguration> screenshotConfiguration)
+        {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<ScreenshotParameters> create(Map<IgnoreStrategy, Set<Locator>> ignores)
         {
             return Optional.empty();
         }

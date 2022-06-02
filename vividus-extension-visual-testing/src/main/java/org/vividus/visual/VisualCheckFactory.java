@@ -18,10 +18,13 @@ package org.vividus.visual;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 
 import javax.inject.Inject;
 
+import org.vividus.selenium.screenshot.IgnoreStrategy;
+import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.screenshot.ScreenshotConfiguration;
 import org.vividus.ui.screenshot.ScreenshotParameters;
 import org.vividus.ui.screenshot.ScreenshotParametersFactory;
@@ -47,6 +50,15 @@ public class VisualCheckFactory implements IVisualCheckFactory
         return create(baselineName, actionType, Optional.empty());
     }
 
+    @Override
+    public VisualCheck create(String baselineName, VisualActionType actionType,
+            Map<IgnoreStrategy, Set<Locator>> ignores)
+    {
+        VisualCheck check = createVisualCheck(baselineName, actionType);
+        check.setScreenshotParameters(screenshotParametersFactory.create(ignores));
+        return check;
+    }
+
     private String createIndexedBaseline(String baselineName)
     {
         return screenshotIndexer.map(indexers::get)
@@ -68,10 +80,15 @@ public class VisualCheckFactory implements IVisualCheckFactory
     public VisualCheck create(String baselineName, VisualActionType actionType,
             Optional<ScreenshotConfiguration> parameters)
     {
-        String indexedBaselineName = createIndexedBaseline(baselineName);
-        VisualCheck check = new VisualCheck(indexedBaselineName, actionType);
+        VisualCheck check = createVisualCheck(baselineName, actionType);
         withScreenshotConfiguration(check, parameters);
         return check;
+    }
+
+    private VisualCheck createVisualCheck(String baselineName, VisualActionType actionType)
+    {
+        String indexedBaselineName = createIndexedBaseline(baselineName);
+        return new VisualCheck(indexedBaselineName, actionType);
     }
 
     private void withScreenshotConfiguration(VisualCheck check, Optional<ScreenshotConfiguration> configuration)

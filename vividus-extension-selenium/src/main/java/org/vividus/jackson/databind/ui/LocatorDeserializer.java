@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.vividus.jackson.databind.ui.web;
+package org.vividus.jackson.databind.ui;
 
 import java.io.IOException;
 

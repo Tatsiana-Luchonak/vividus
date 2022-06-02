@@ -16,15 +16,11 @@
 
 package org.vividus.visual.model;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
-import java.util.Set;
 
 import org.openqa.selenium.SearchContext;
-import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.screenshot.ScreenshotParameters;
-import org.vividus.visual.screenshot.IgnoreStrategy;
 
 public class VisualCheck
 {
@@ -32,7 +28,6 @@ public class VisualCheck
     private VisualActionType action;
     private OptionalDouble acceptableDiffPercentage = OptionalDouble.empty();
     private OptionalDouble requiredDiffPercentage = OptionalDouble.empty();
-    private Map<IgnoreStrategy, Set<Locator>> elementsToIgnore = Map.of();
     private Optional<ScreenshotParameters> screenshotParameters = Optional.empty();
     private SearchContext searchContext;
 
@@ -50,16 +45,6 @@ public class VisualCheck
     public String getBaselineName()
     {
         return baselineName;
-    }
-
-    public Map<IgnoreStrategy, Set<Locator>> getElementsToIgnore()
-    {
-        return elementsToIgnore;
-    }
-
-    public void setElementsToIgnore(Map<IgnoreStrategy, Set<Locator>> elementsToIgnore)
-    {
-        this.elementsToIgnore = elementsToIgnore;
     }
 
     public OptionalDouble getAcceptableDiffPercentage()

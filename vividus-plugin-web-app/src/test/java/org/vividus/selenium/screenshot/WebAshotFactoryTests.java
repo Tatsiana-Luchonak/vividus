@@ -47,6 +47,7 @@ import org.vividus.ui.web.screenshot.WebScreenshotParameters;
 
 import ru.yandex.qatools.ashot.AShot;
 import ru.yandex.qatools.ashot.shooting.CuttingDecorator;
+import ru.yandex.qatools.ashot.shooting.ElementCroppingDecorator;
 import ru.yandex.qatools.ashot.shooting.ScalingDecorator;
 import ru.yandex.qatools.ashot.shooting.ShootingStrategy;
 import ru.yandex.qatools.ashot.shooting.cutter.CutStrategy;
@@ -120,8 +121,10 @@ class WebAshotFactoryTests
         AShot aShot = webAshotFactory.create(Optional.of(screenshotParameters));
 
         assertThat(FieldUtils.readField(aShot, COORDS_PROVIDER, true), is(instanceOf(CeilingJsCoordsProvider.class)));
-        ShootingStrategy viewportPastingDecorator = getShootingStrategy(aShot);
-        assertThat(viewportPastingDecorator, is(instanceOf(AdjustingViewportPastingDecorator.class)));
+        ShootingStrategy decorator = getShootingStrategy(aShot);
+        assertThat(decorator, is(instanceOf(ElementCroppingDecorator.class)));
+        ShootingStrategy viewportPastingDecorator = (ShootingStrategy) FieldUtils.readField(decorator,
+                SHOOTING_STRATEGY, true);
         assertEquals(500, (int) FieldUtils.readField(viewportPastingDecorator, "scrollTimeout", true));
         assertEquals(screenshotDebugger, FieldUtils.readField(viewportPastingDecorator, "screenshotDebugger", true));
 
@@ -161,9 +164,13 @@ class WebAshotFactoryTests
         AShot aShot = webAshotFactory.create(Optional.of(screenshotParameters));
 
         assertThat(FieldUtils.readField(aShot, COORDS_PROVIDER, true), is(instanceOf(CeilingJsCoordsProvider.class)));
-        ShootingStrategy scrollableElementAwareDecorator = getShootingStrategy(aShot);
+        ShootingStrategy decorator = getShootingStrategy(aShot);
+        assertThat(decorator, is(instanceOf(ElementCroppingDecorator.class)));
+        ShootingStrategy scrollableElementAwareDecorator = (ShootingStrategy) FieldUtils.readField(decorator,
+                SHOOTING_STRATEGY, true);
         assertThat(scrollableElementAwareDecorator,
                 is(instanceOf(AdjustingScrollableElementAwareViewportPastingDecorator.class)));
+
         assertEquals(webElement, FieldUtils.readField(scrollableElementAwareDecorator, "scrollableElement", true));
 
         ShootingStrategy scalingDecorator = getShootingStrategy(scrollableElementAwareDecorator);

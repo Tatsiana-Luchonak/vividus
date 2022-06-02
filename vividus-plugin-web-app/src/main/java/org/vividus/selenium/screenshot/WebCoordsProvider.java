@@ -20,22 +20,19 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.vividus.selenium.manager.IWebDriverManager;
-import org.vividus.ui.context.IUiContext;
 
 import ru.yandex.qatools.ashot.coordinates.Coords;
+import ru.yandex.qatools.ashot.coordinates.WebDriverCoordsProvider;
 
-public class WebAdjustingCoordsProvider extends AbstractAdjustingCoordsProvider
+public class WebCoordsProvider extends WebDriverCoordsProvider
 {
     private static final long serialVersionUID = 3963826455192835938L;
 
     private final transient IWebDriverManager webDriverManager;
-
     private final transient IScrollbarHandler scrollbarHandler;
 
-    public WebAdjustingCoordsProvider(IWebDriverManager webDriverManager, IScrollbarHandler scrollbarHandler,
-            IUiContext uiContext)
+    public WebCoordsProvider(IWebDriverManager webDriverManager, IScrollbarHandler scrollbarHandler)
     {
-        super(uiContext);
         this.webDriverManager = webDriverManager;
         this.scrollbarHandler = scrollbarHandler;
     }
@@ -50,14 +47,8 @@ public class WebAdjustingCoordsProvider extends AbstractAdjustingCoordsProvider
             {
                 coords.y += Math.toIntExact(getYOffset(driver));
             }
-            return adjustToSearchContext(coords);
+            return coords;
         });
-    }
-
-    @Override
-    protected Coords getCoords(WebElement webElement)
-    {
-        return super.ofElement(null, webElement);
     }
 
     private long getYOffset(WebDriver webDriver)

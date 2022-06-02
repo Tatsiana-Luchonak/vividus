@@ -16,9 +16,13 @@
 
 package org.vividus.visual;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 
+import org.vividus.selenium.screenshot.IgnoreStrategy;
+import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.screenshot.ScreenshotConfiguration;
 import org.vividus.visual.model.VisualActionType;
 import org.vividus.visual.model.VisualCheck;
@@ -26,6 +30,8 @@ import org.vividus.visual.model.VisualCheck;
 public interface IVisualCheckFactory
 {
     VisualCheck create(String baselineName, VisualActionType actionType);
+
+    VisualCheck create(String baselineName, VisualActionType actionType, Map<IgnoreStrategy, Set<Locator>> ignores);
 
     VisualCheck create(String baselineName, VisualActionType actionType,
             Optional<ScreenshotConfiguration> configuration);

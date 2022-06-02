@@ -34,6 +34,7 @@ import org.jbehave.core.model.ExamplesTable;
 import org.jbehave.core.steps.Parameters;
 import org.vividus.reporter.event.IAttachmentPublisher;
 import org.vividus.resource.ResourceLoadException;
+import org.vividus.selenium.screenshot.IgnoreStrategy;
 import org.vividus.softassert.ISoftAssert;
 import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.context.IUiContext;
@@ -42,7 +43,6 @@ import org.vividus.visual.engine.IVisualTestingEngine;
 import org.vividus.visual.model.VisualActionType;
 import org.vividus.visual.model.VisualCheck;
 import org.vividus.visual.model.VisualCheckResult;
-import org.vividus.visual.screenshot.IgnoreStrategy;
 import org.vividus.visual.steps.AbstractVisualSteps;
 
 public class VisualSteps extends AbstractVisualSteps
@@ -120,7 +120,8 @@ public class VisualSteps extends AbstractVisualSteps
     @When("I $actionType baseline with `$name` ignoring:$checkSettings")
     public void runVisualTests(VisualActionType actionType, String name, ExamplesTable checkSettings)
     {
-        runVisualTests(() -> visualCheckFactory.create(name, actionType), checkSettings);
+        Parameters checkParameters = getParametersRow(checkSettings);
+        runVisualTests(() -> visualCheckFactory.create(name, actionType, getIgnores(checkParameters)), checkParameters);
     }
 
     /**
@@ -142,29 +143,42 @@ public class VisualSteps extends AbstractVisualSteps
     public void runVisualTests(VisualActionType actionType, String name, ExamplesTable checkSettings,
             ScreenshotConfiguration screenshotConfiguration)
     {
+        Parameters checkParameters = getParametersRow(checkSettings);
+        Map<IgnoreStrategy, Set<Locator>> tableIgnores = getIgnores(checkParameters);
+        String sourceKey = "ignores table";
+        Set<Locator> elementsIgnores = getIgnoresFromOneOf(screenshotConfiguration.getElementsToIgnore(), sourceKey,
+                tableIgnores.get(IgnoreStrategy.ELEMENT));
+        screenshotConfiguration.setElementsToIgnore(elementsIgnores);
+        Set<Locator> areaIgnores = getIgnoresFromOneOf(screenshotConfiguration.getAreasToIgnore(), sourceKey,
+                tableIgnores.get(IgnoreStrategy.AREA));
+        screenshotConfiguration.setAreasToIgnore(areaIgnores);
         runVisualTests(() -> visualCheckFactory.create(name, actionType, Optional.of(screenshotConfiguration)),
-                checkSettings);
+                checkParameters);
     }
 
-    private void runVisualTests(Supplier<VisualCheck> visualCheckFactory, ExamplesTable checkSettings)
+    private void runVisualTests(Supplier<VisualCheck> visualCheckFactory, Parameters checkParameters)
+    {
+        performVisualAction(() -> {
+            VisualCheck visualCheck = visualCheckFactory.get();
+            setDiffPercentage(visualCheck, checkParameters);
+            return visualCheck;
+        });
+    }
+
+    private Parameters getParametersRow(ExamplesTable checkSettings)
     {
         int rowsSize = checkSettings.getRows().size();
         if (rowsSize != 1)
         {
-            throw new IllegalArgumentException("Only one row of locators to ignore supported, actual: "
-            + rowsSize);
+            throw new IllegalArgumentException("Only one row of locators to ignore supported, actual: " + rowsSize);
         }
-        Parameters rowAsParameters = checkSettings.getRowAsParameters(0);
-        Map<IgnoreStrategy, Set<Locator>> toIgnore = Stream.of(IgnoreStrategy.values())
-                                                      .collect(Collectors.toMap(Function.identity(),
-                                                          s -> getLocatorsSet(rowAsParameters, s)));
+        return checkSettings.getRowAsParameters(0);
+    }
 
-        performVisualAction(() -> {
-            VisualCheck visualCheck = visualCheckFactory.get();
-            visualCheck.setElementsToIgnore(toIgnore);
-            setDiffPercentage(visualCheck, rowAsParameters);
-            return visualCheck;
-        });
+    private Map<IgnoreStrategy, Set<Locator>> getIgnores(Parameters checkParameters)
+    {
+        return Stream.of(IgnoreStrategy.values()).collect(Collectors.toMap(Function.identity(),
+                s -> getLocatorsSet(checkParameters, s)));
     }
 
     private void setDiffPercentage(VisualCheck visualCheck, Parameters rowAsParameters)

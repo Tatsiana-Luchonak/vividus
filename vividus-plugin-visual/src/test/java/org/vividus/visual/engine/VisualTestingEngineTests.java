@@ -55,14 +55,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.vividus.selenium.screenshot.AshotScreenshotTaker;
 import org.vividus.ui.screenshot.ScreenshotConfiguration;
+import org.vividus.ui.screenshot.ScreenshotParameters;
 import org.vividus.ui.screenshot.ScreenshotParametersFactory;
 import org.vividus.util.ResourceUtils;
 import org.vividus.visual.VisualCheckFactory;
 import org.vividus.visual.model.VisualActionType;
 import org.vividus.visual.model.VisualCheck;
 import org.vividus.visual.model.VisualCheckResult;
-import org.vividus.visual.screenshot.ScreenshotProvider;
 
 import ru.yandex.qatools.ashot.Screenshot;
 
@@ -90,7 +91,7 @@ class VisualTestingEngineTests
 
     @Mock private ScreenshotParametersFactory<ScreenshotConfiguration> screenshotParametersFactory;
     @Mock private IBaselineRepository baselineRepository;
-    @Mock private ScreenshotProvider screenshotProvider;
+    @Mock private AshotScreenshotTaker<ScreenshotParameters> ashotScreenshotTaker;
     @Spy private DiffMarkupPolicyFactory diffMarkupPolicyFactory;
 
     @InjectMocks private VisualTestingEngine visualTestingEngine;
@@ -250,7 +251,8 @@ class VisualTestingEngineTests
     {
         BufferedImage image = loadImage(imageName);
         Screenshot screenshot = new Screenshot(image);
-        when(screenshotProvider.take(visualCheck)).thenReturn(screenshot);
+        when(ashotScreenshotTaker.takeAshotScreenshot(visualCheck.getSearchContext(),
+                visualCheck.getScreenshotParameters())).thenReturn(screenshot);
         return image;
     }
 

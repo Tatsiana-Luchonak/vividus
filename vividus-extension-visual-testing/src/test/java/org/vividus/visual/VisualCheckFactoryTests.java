@@ -24,12 +24,15 @@ import static org.mockito.Mockito.when;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.vividus.selenium.screenshot.IgnoreStrategy;
+import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.screenshot.ScreenshotConfiguration;
 import org.vividus.ui.screenshot.ScreenshotParameters;
 import org.vividus.ui.screenshot.ScreenshotParametersFactory;
@@ -56,7 +59,6 @@ class VisualCheckFactoryTests
             () -> assertEquals(NAME, check.getBaselineName()),
             () -> assertEquals(VisualActionType.COMPARE_AGAINST, check.getAction()),
             () -> assertEquals(OptionalDouble.empty(), check.getAcceptableDiffPercentage()),
-            () -> assertEquals(Map.of(), check.getElementsToIgnore()),
             () -> assertEquals(Optional.empty(), check.getScreenshotParameters()));
     }
 
@@ -80,8 +82,26 @@ class VisualCheckFactoryTests
             () -> assertEquals(INDEXED_NAME, check.getBaselineName()),
             () -> assertEquals(VisualActionType.COMPARE_AGAINST, check.getAction()),
             () -> assertEquals(OptionalDouble.empty(), check.getAcceptableDiffPercentage()),
-            () -> assertEquals(Map.of(), check.getElementsToIgnore()),
             () -> assertEquals(Optional.empty(), check.getScreenshotParameters()));
+    }
+
+    @Test
+    void shouldCreateVisualCheckWithIgnores()
+    {
+        mockIndexer();
+        Locator locator = mock(Locator.class);
+        Map<IgnoreStrategy, Set<Locator>> ignores = Map.of(
+            IgnoreStrategy.ELEMENT, Set.of(locator),
+            IgnoreStrategy.AREA, Set.of(locator)
+        );
+        ScreenshotParameters parameters = mock(ScreenshotParameters.class);
+        when(screenshotParametersFactory.create(ignores)).thenReturn(Optional.of(parameters));
+        VisualCheck check = visualCheckFactory.create(NAME, VisualActionType.COMPARE_AGAINST, ignores);
+        assertAll(
+            () -> assertEquals(INDEXED_NAME, check.getBaselineName()),
+            () -> assertEquals(VisualActionType.COMPARE_AGAINST, check.getAction()),
+            () -> assertEquals(OptionalDouble.empty(), check.getAcceptableDiffPercentage()),
+            () -> assertEquals(Optional.of(parameters), check.getScreenshotParameters()));
     }
 
     private void mockIndexer()
@@ -107,7 +127,6 @@ class VisualCheckFactoryTests
             () -> assertEquals(NAME, check.getBaselineName()),
             () -> assertEquals(VisualActionType.COMPARE_AGAINST, check.getAction()),
             () -> assertEquals(OptionalDouble.empty(), check.getAcceptableDiffPercentage()),
-            () -> assertEquals(Map.of(), check.getElementsToIgnore()),
             () -> assertEquals(Optional.of(screenshotParameters), check.getScreenshotParameters()));
     }
 }

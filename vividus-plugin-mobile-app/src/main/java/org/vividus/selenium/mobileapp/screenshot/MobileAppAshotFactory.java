@@ -19,6 +19,7 @@ package org.vividus.selenium.mobileapp.screenshot;
 import static ru.yandex.qatools.ashot.shooting.ShootingStrategies.scaling;
 import static ru.yandex.qatools.ashot.shooting.ShootingStrategies.simple;
 
+import java.util.Map;
 import java.util.Optional;
 
 import org.vividus.selenium.mobileapp.MobileAppWebDriverManager;
@@ -57,6 +58,8 @@ public class MobileAppAshotFactory extends AbstractAshotFactory<ScreenshotParame
         }
         int nativeFooterToCut = screenshotParameters.map(ScreenshotParameters::getNativeFooterToCut).orElse(0);
         strategy = decorateWithFixedCutStrategy(strategy, statusBarSize, nativeFooterToCut);
+        strategy = decorateWithCropping(strategy,
+                screenshotParameters.map(ScreenshotParameters::getIgnoreStrategies).orElse(Map.of()), 0);
         return new AShot().shootingStrategy(strategy).coordsProvider(coordsProvider);
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 the original author or authors.
+ * Copyright 2019-2022 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.vividus.visual.eyes.model;
 
 import java.net.URI;
-import java.util.Map;
 import java.util.Set;
 
 import com.applitools.eyes.MatchLevel;
@@ -25,7 +24,6 @@ import com.applitools.eyes.MatchLevel;
 import org.vividus.ui.action.search.Locator;
 import org.vividus.visual.model.VisualActionType;
 import org.vividus.visual.model.VisualCheck;
-import org.vividus.visual.screenshot.IgnoreStrategy;
 
 public class ApplitoolsVisualCheck extends VisualCheck
 {
@@ -51,11 +49,6 @@ public class ApplitoolsVisualCheck extends VisualCheck
     {
         super(baselineName, action);
         this.batchName = batchName;
-    }
-
-    public void buildIgnores()
-    {
-        setElementsToIgnore(Map.of(IgnoreStrategy.AREA, areasToIgnore, IgnoreStrategy.ELEMENT, elementsToIgnore));
     }
 
     public String getExecuteApiKey()
@@ -161,5 +154,15 @@ public class ApplitoolsVisualCheck extends VisualCheck
     public void setAreasToIgnore(Set<Locator> areasToIgnore)
     {
         this.areasToIgnore = areasToIgnore;
+    }
+
+    public Set<Locator> getElementsToIgnore()
+    {
+        return elementsToIgnore;
+    }
+
+    public Set<Locator> getAreasToIgnore()
+    {
+        return areasToIgnore;
     }
 }

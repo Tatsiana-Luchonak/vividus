@@ -53,6 +53,11 @@
         </constructor-arg>
     </bean>
 
+    <bean class="org.vividus.visual.eyes.service.ImageVisualTestingService">
+        <constructor-arg index="1" ref="screenshotTaker" />
+        <constructor-arg index="2" ref="eyesHttpClient" />
+    </bean>
+
     <util:list id="stepBeanNames-Eyes-Visual">
         <idref bean="visualTestingSteps" />
     </util:list>

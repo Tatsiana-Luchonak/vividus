@@ -69,6 +69,9 @@ public class WebAshotFactory extends AbstractAshotFactory<WebScreenshotParameter
                 screenshotParameters))
                 .withDebugger(screenshotDebugger);
 
+        decorated = decorateWithCropping(decorated, screenshotParameters.getIgnoreStrategies(),
+                screenshotParameters.getNativeHeaderToCut());
+
         return new ScrollbarHidingAshot(screenshotParameters.getScrollableElement(), scrollbarHandler)
                 .shootingStrategy(decorated)
                 .coordsProvider(screenshotParameters.getCoordsProvider().create(javascriptActions));

@@ -14,37 +14,39 @@
  * limitations under the License.
  */
 
-package org.vividus.jackson.databind.ui.web;
+package ru.yandex.qatools.ashot.shooting;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-
-import com.fasterxml.jackson.core.JsonParser;
+import java.awt.image.BufferedImage;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.vividus.ui.action.search.Locator;
-import org.vividus.ui.util.LocatorConversionUtils;
+import org.openqa.selenium.WebDriver;
+import org.vividus.selenium.screenshot.ScreenshotCropper;
 
 @ExtendWith(MockitoExtension.class)
-class LocatorDeserializerTests
+class ElementCroppingDecoratorTests
 {
-    @Mock private Locator locator;
-    @Mock private JsonParser jsonParser;
-    @Mock private LocatorConversionUtils locatorConversionUtils;
-    @InjectMocks private LocatorDeserializer deserializer;
+    @Mock private ShootingStrategy shootingStrategy;
+    @Mock private BufferedImage image;
+    @Mock private WebDriver webDriver;
+    @Mock private ScreenshotCropper screenshotCropper;
 
     @Test
-    void shouldDeserialize() throws IOException
+    void shouldGetScreenshot()
     {
-        String input = "input-locator";
-        when(jsonParser.getText()).thenReturn(input);
-        when(locatorConversionUtils.convertToLocator(input)).thenReturn(locator);
-        assertEquals(locator, deserializer.deserialize(jsonParser, null));
+        ElementCroppingDecorator decorator = new ElementCroppingDecorator(shootingStrategy, screenshotCropper, Map.of(),
+                0);
+        when(shootingStrategy.getScreenshot(webDriver)).thenReturn(image);
+        when(screenshotCropper.getScreenshot(image, Map.of(), 0)).thenReturn(image);
+
+        BufferedImage result = decorator.getScreenshot(webDriver, Set.of());
+        assertEquals(image, result);
     }
 }

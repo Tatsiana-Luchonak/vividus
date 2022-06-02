@@ -17,12 +17,16 @@
 package org.vividus.visual.eyes;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.jbehave.core.annotations.When;
 import org.vividus.reporter.event.IAttachmentPublisher;
+import org.vividus.selenium.screenshot.IgnoreStrategy;
 import org.vividus.softassert.ISoftAssert;
+import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.context.IUiContext;
 import org.vividus.ui.screenshot.ScreenshotConfiguration;
 import org.vividus.ui.screenshot.ScreenshotParameters;
@@ -187,7 +191,30 @@ public class VisualTestingSteps extends AbstractVisualSteps
     {
         runApplitoolsTest(() ->
         {
-            Optional<ScreenshotParameters> screenshotParameters = screenshotParametersFactory.create(configuration);
+            Set<Locator> elementsToIgnore = visualCheck.getElementsToIgnore();
+            Set<Locator> areasToIgnore = visualCheck.getAreasToIgnore();
+
+            Optional<ScreenshotParameters> screenshotParameters;
+            if (configuration.isEmpty())
+            {
+                screenshotParameters = screenshotParametersFactory.create(Map.of(
+                    IgnoreStrategy.AREA, areasToIgnore,
+                    IgnoreStrategy.ELEMENT, elementsToIgnore
+                ));
+            }
+            else
+            {
+                ScreenshotConfiguration screenshotConfiguration = configuration.get();
+                String sourceKey = "applitools configuration";
+                Set<Locator> elementIgnores = getIgnoresFromOneOf(screenshotConfiguration.getElementsToIgnore(),
+                        sourceKey, elementsToIgnore);
+                screenshotConfiguration.setElementsToIgnore(elementIgnores);
+                Set<Locator> areaIgnores = getIgnoresFromOneOf(screenshotConfiguration.getAreasToIgnore(), sourceKey,
+                        areasToIgnore);
+                screenshotConfiguration.setAreasToIgnore(areaIgnores);
+                screenshotParameters = screenshotParametersFactory.create(configuration);
+            }
+
             visualCheck.setScreenshotParameters(screenshotParameters);
             return visualCheck;
         });

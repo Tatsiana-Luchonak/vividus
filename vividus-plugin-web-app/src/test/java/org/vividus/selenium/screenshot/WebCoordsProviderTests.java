@@ -18,7 +18,6 @@ package org.vividus.selenium.screenshot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,12 +33,11 @@ import org.openqa.selenium.Point;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.vividus.selenium.manager.IWebDriverManager;
-import org.vividus.ui.context.IUiContext;
 
 import ru.yandex.qatools.ashot.coordinates.Coords;
 
 @ExtendWith(MockitoExtension.class)
-class WebAdjustingCoordsProviderTests
+class WebCoordsProviderTests
 {
     private static final int X = 1;
     private static final int Y = 2;
@@ -57,13 +55,10 @@ class WebAdjustingCoordsProviderTests
     private IWebDriverManager webDriverManager;
 
     @Mock
-    private IUiContext uiContext;
-
-    @Mock
     private IScrollbarHandler scrollbarHandler;
 
     @InjectMocks
-    private WebAdjustingCoordsProvider adjustingCoordsProvider;
+    private WebCoordsProvider adjustingCoordsProvider;
 
     @Test
     void testGetCoordsNotIOS()
@@ -92,12 +87,8 @@ class WebAdjustingCoordsProviderTests
     @Test
     void shouldIntersectIgnoredElementWithContextAndAdjustCoordinates()
     {
-        Coords expectedCoords = new Coords(0, 0, 3, 5);
+        Coords expectedCoords = new Coords(1, 2, 4, 6);
         mockScrollbarActions(expectedCoords);
-        WebElement searchContext = mock(WebElement.class);
-        when(searchContext.getLocation()).thenReturn(new Point(2, 3));
-        when(searchContext.getSize()).thenReturn(new Dimension(5, 5));
-        when(uiContext.getSearchContext()).thenReturn(searchContext);
         when(webElement.getLocation()).thenReturn(new Point(X, Y));
         when(webElement.getSize()).thenReturn(new Dimension(4, 6));
         Coords coords = adjustingCoordsProvider.ofElement(webDriver, webElement);
@@ -108,12 +99,8 @@ class WebAdjustingCoordsProviderTests
     @Test
     void shouldRelateCoordsIfTheyInsideContext()
     {
-        Coords expectedCoords = new Coords(1, 1, WIDTH, HEIGHT);
+        Coords expectedCoords = new Coords(2, 2, WIDTH, HEIGHT);
         mockScrollbarActions(expectedCoords);
-        WebElement searchContext = mock(WebElement.class);
-        when(searchContext.getLocation()).thenReturn(new Point(1, 1));
-        when(searchContext.getSize()).thenReturn(new Dimension(5, 5));
-        when(uiContext.getSearchContext()).thenReturn(searchContext);
         when(webElement.getLocation()).thenReturn(new Point(2, 2));
         when(webElement.getSize()).thenReturn(new Dimension(WIDTH, HEIGHT));
         Coords coords = adjustingCoordsProvider.ofElement(webDriver, webElement);
@@ -129,8 +116,8 @@ class WebAdjustingCoordsProviderTests
 
     private void mockScrollbarActions(Coords expectedCoords)
     {
-        when(scrollbarHandler.performActionWithHiddenScrollbars(
-                argThat(a -> expectedCoords.equals(a.get())))).thenReturn(expectedCoords);
+        when(scrollbarHandler.performActionWithHiddenScrollbars(argThat(a -> expectedCoords.equals(a.get()))))
+                .thenReturn(expectedCoords);
     }
 
     private void verifyCoords(Coords coordsToCheck)

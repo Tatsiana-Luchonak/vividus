@@ -25,10 +25,11 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vividus.selenium.screenshot.AshotScreenshotTaker;
+import org.vividus.ui.screenshot.ScreenshotParameters;
 import org.vividus.visual.model.VisualActionType;
 import org.vividus.visual.model.VisualCheck;
 import org.vividus.visual.model.VisualCheckResult;
-import org.vividus.visual.screenshot.ScreenshotProvider;
 
 import ru.yandex.qatools.ashot.Screenshot;
 import ru.yandex.qatools.ashot.comparison.ImageDiff;
@@ -41,7 +42,7 @@ public class VisualTestingEngine implements IVisualTestingEngine
     private static final int ONE_HUNDRED = 100;
     private static final int SCALE = 3;
 
-    private final ScreenshotProvider screenshotProvider;
+    private final AshotScreenshotTaker<ScreenshotParameters> ashotScreenshotTaker;
     private final IBaselineRepository baselineRepository;
     private final DiffMarkupPolicyFactory diffMarkupPolicyFactory;
 
@@ -49,10 +50,10 @@ public class VisualTestingEngine implements IVisualTestingEngine
     private double requiredDiffPercentage;
     private boolean overrideBaselines;
 
-    public VisualTestingEngine(ScreenshotProvider screenshotProvider, IBaselineRepository baselineRepository,
-            DiffMarkupPolicyFactory diffMarkupPolicyFactory)
+    public VisualTestingEngine(AshotScreenshotTaker<ScreenshotParameters> ashotScreenshotTaker,
+            IBaselineRepository baselineRepository, DiffMarkupPolicyFactory diffMarkupPolicyFactory)
     {
-        this.screenshotProvider = screenshotProvider;
+        this.ashotScreenshotTaker = ashotScreenshotTaker;
         this.baselineRepository = baselineRepository;
         this.diffMarkupPolicyFactory = diffMarkupPolicyFactory;
     }
@@ -69,7 +70,8 @@ public class VisualTestingEngine implements IVisualTestingEngine
 
     private Screenshot getCheckpointScreenshot(VisualCheck visualCheck)
     {
-        return screenshotProvider.take(visualCheck);
+        return ashotScreenshotTaker.takeAshotScreenshot(visualCheck.getSearchContext(),
+                visualCheck.getScreenshotParameters());
     }
 
     @Override

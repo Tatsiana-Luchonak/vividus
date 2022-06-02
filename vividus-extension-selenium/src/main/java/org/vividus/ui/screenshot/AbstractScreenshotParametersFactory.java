@@ -16,11 +16,19 @@
 
 package org.vividus.ui.screenshot;
 
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.Validate;
+import org.vividus.selenium.screenshot.IgnoreStrategy;
+import org.vividus.ui.action.search.Locator;
 import org.vividus.util.property.PropertyMappedCollection;
 
 public abstract class AbstractScreenshotParametersFactory<C extends ScreenshotConfiguration>
@@ -28,6 +36,7 @@ public abstract class AbstractScreenshotParametersFactory<C extends ScreenshotCo
 {
     private PropertyMappedCollection<C> screenshotConfigurations;
     private String shootingStrategy;
+    private Map<IgnoreStrategy, Set<Locator>> ignoreStrategies;
 
     protected Optional<C> getScreenshotConfiguration(Optional<C> screenshotConfiguration, BinaryOperator<C> merger)
     {
@@ -52,10 +61,40 @@ public abstract class AbstractScreenshotParametersFactory<C extends ScreenshotCo
     protected <R extends ScreenshotParameters> R createWithBaseConfiguration(ScreenshotConfiguration configuration,
             Supplier<R> parametersFactory)
     {
+        Map<IgnoreStrategy, Set<Locator>> stepIgnores = Map.of(
+            IgnoreStrategy.ELEMENT, configuration.getElementsToIgnore(),
+            IgnoreStrategy.AREA, configuration.getAreasToIgnore()
+        );
+
+        return createWithBaseConfiguration(configuration, stepIgnores, parametersFactory);
+    }
+
+    protected <R extends ScreenshotParameters> R createWithBaseConfiguration(ScreenshotConfiguration configuration,
+            Map<IgnoreStrategy, Set<Locator>> stepIgnores, Supplier<R> parametersFactory)
+    {
         R parameters = parametersFactory.get();
         parameters.setShootingStrategy(configuration.getShootingStrategy());
         parameters.setNativeFooterToCut(ensureValidCutSize(configuration.getNativeFooterToCut(), "native footer"));
+
+        Map<IgnoreStrategy, Set<Locator>> ignores = new EnumMap<>(IgnoreStrategy.class);
+
+        for (Map.Entry<IgnoreStrategy, Set<Locator>> ignoreStrategy : ignoreStrategies.entrySet())
+        {
+            IgnoreStrategy cropStrategy = ignoreStrategy.getKey();
+            Set<Locator> ignore = Stream.concat(
+                    getLocatorsStream(ignoreStrategy.getValue()),
+                    getLocatorsStream(stepIgnores.get(cropStrategy)))
+                    .collect(Collectors.toSet());
+            ignores.put(cropStrategy, ignore);
+        }
+        parameters.setIgnoreStrategies(ignores);
+
         return parameters;
+    }
+
+    private Stream<Locator> getLocatorsStream(Set<Locator> locatorsSet)
+    {
+        return Optional.ofNullable(locatorsSet).stream().flatMap(Collection::stream);
     }
 
     public void setShootingStrategy(String shootingStrategy)
@@ -66,5 +105,10 @@ public abstract class AbstractScreenshotParametersFactory<C extends ScreenshotCo
     public void setScreenshotConfigurations(PropertyMappedCollection<C> screenshotConfigurations)
     {
         this.screenshotConfigurations = screenshotConfigurations;
+    }
+
+    public void setIgnoreStrategies(Map<IgnoreStrategy, Set<Locator>> ignoreStrategies)
+    {
+        this.ignoreStrategies = ignoreStrategies;
     }
 }

@@ -16,8 +16,13 @@
 
 package org.vividus.ui.mobileapp.screenshot;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.BinaryOperator;
 
+import org.vividus.selenium.screenshot.IgnoreStrategy;
+import org.vividus.ui.action.search.Locator;
 import org.vividus.ui.screenshot.AbstractScreenshotParametersFactory;
 import org.vividus.ui.screenshot.ScreenshotConfiguration;
 import org.vividus.ui.screenshot.ScreenshotParameters;
@@ -28,7 +33,21 @@ public class MobileAppScreenshotParametersFactory
     @Override
     public Optional<ScreenshotParameters> create(Optional<ScreenshotConfiguration> screenshotConfiguration)
     {
-        return getScreenshotConfiguration(screenshotConfiguration, (p, b) ->
+        return getScreenshotConfiguration(screenshotConfiguration, getConfigurationMerger())
+                .map(config -> createWithBaseConfiguration(config, ScreenshotParameters::new));
+    }
+
+    @Override
+    public Optional<ScreenshotParameters> create(Map<IgnoreStrategy, Set<Locator>> ignores)
+    {
+        ScreenshotConfiguration configuration = getScreenshotConfiguration(Optional.empty(),
+                getConfigurationMerger()).orElseGet(ScreenshotConfiguration::new);
+        return Optional.of(createWithBaseConfiguration(configuration, ignores, ScreenshotParameters::new));
+    }
+
+    private BinaryOperator<ScreenshotConfiguration> getConfigurationMerger()
+    {
+        return (p, b) ->
         {
             if (p.getNativeFooterToCut() == 0)
             {
@@ -39,6 +58,6 @@ public class MobileAppScreenshotParametersFactory
                 p.setShootingStrategy(b.getShootingStrategy());
             }
             return p;
-        }).map(config -> createWithBaseConfiguration(config, ScreenshotParameters::new));
+        };
     }
 }
